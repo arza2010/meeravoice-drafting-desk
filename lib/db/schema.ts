@@ -70,6 +70,11 @@ export const drafts = pgTable("drafts", {
   // fragment's own intake_json, but can differ when /draft combines several
   // undrafted fragments into one candidate.
   intakeJson: jsonb("intake_json").notNull(),
+  // Best-effort, unverified web-search context (recent industry/news items)
+  // used to make angle selection feel current. Never a citable fact source -
+  // see prompts/angles.ts and prompts/draft.ts. Null when the lookup found
+  // nothing relevant or the model doesn't support web search.
+  newsContext: text("news_context"),
   pillar: text("pillar"),
   anglesJson: jsonb("angles_json"),
   selectedAngle: text("selected_angle"),
@@ -100,7 +105,7 @@ export const stageRuns = pgTable("stage_runs", {
   fragmentId: uuid("fragment_id"),
   draftId: uuid("draft_id"),
   stage: text("stage", {
-    enum: ["intake", "angles", "draft", "critique", "revise"],
+    enum: ["intake", "news", "angles", "draft", "critique", "revise"],
   }).notNull(),
   model: text("model").notNull(),
   tokensIn: integer("tokens_in").notNull(),

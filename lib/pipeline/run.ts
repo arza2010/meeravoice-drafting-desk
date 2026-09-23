@@ -7,6 +7,7 @@ import { extractPlaceholders } from "@/lib/checks/numbers";
 import { sendMessage } from "@/lib/telegram/api";
 import { draftActionKeyboard } from "@/lib/telegram/keyboards";
 import { runIntake } from "@/lib/pipeline/intake";
+import { runNewsContext } from "@/lib/pipeline/news";
 import { runAngles } from "@/lib/pipeline/angles";
 import { runDraft } from "@/lib/pipeline/draft";
 import { collectDeliveryFlags, runCritiqueLoop } from "@/lib/pipeline/critique";
@@ -113,10 +114,24 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
   const intake = draftRow.intakeJson as Intake;
 
   if (draftRow.stage === "intake") {
+    const t0News = Date.now();
+    const newsResult = await runNewsContext(intake);
+    if (newsResult.tokensIn > 0 || newsResult.tokensOut > 0) {
+      await recordStageRun({
+        draftId,
+        stage: "news",
+        model,
+        tokensIn: newsResult.tokensIn,
+        tokensOut: newsResult.tokensOut,
+        latencyMs: Date.now() - t0News,
+        retried: false,
+      });
+    }
+
     const recentPosts = await getRecentApprovedPosts();
     const feedback = await getRecentRejectReasons();
     const t0 = Date.now();
-    const anglesResult = await runAngles(intake, recentPosts, feedback);
+    const anglesResult = await runAngles(intake, recentPosts, feedback, newsResult.context);
     await recordStageRun({
       draftId,
       stage: "angles",
@@ -130,12 +145,13 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
     [draftRow] = await db
       .update(drafts)
       .set({
+        newsContext: newsResult.context,
         anglesJson: anglesResult.angles,
         selectedAngle: anglesResult.angles.selected,
         pillar: selected?.pillar ?? null,
         stage: "angles",
-        tokensIn: draftRow.tokensIn + anglesResult.tokensIn,
-        tokensOut: draftRow.tokensOut + anglesResult.tokensOut,
+        tokensIn: draftRow.tokensIn + newsResult.tokensIn + anglesResult.tokensIn,
+        tokensOut: draftRow.tokensOut + newsResult.tokensOut + anglesResult.tokensOut,
       })
       .where(eq(drafts.id, draftId))
       .returning();
@@ -147,7 +163,7 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
     const selected = angles.angles.find((a) => a.id === angles.selected);
     if (!selected) throw new Error(`Draft ${draftId} has no valid selected angle`);
     const t0 = Date.now();
-    const draftResult = await runDraft(intake, selected);
+    const draftResult = await runDraft(intake, selected, draftRow.newsContext);
     await recordStageRun({
       draftId,
       stage: "draft",

@@ -6,6 +6,8 @@ export interface AnglesPromptInput {
   intake: Intake;
   recentPosts: RecentPostSummary[];
   meeraFeedback: string[];
+  /** Unverified, best-effort web-search context - see lib/pipeline/news.ts. */
+  newsContext?: string | null;
 }
 
 function renderRecentPosts(posts: RecentPostSummary[]): string {
@@ -46,6 +48,10 @@ ${renderRecentPosts(input.recentPosts)}
 <meera_feedback>
 ${renderFeedback(input.meeraFeedback)}
 </meera_feedback>
+
+<recent_context source="web_search, unverified">
+${input.newsContext ?? "(no current-events context available for this fragment)"}
+</recent_context>
 </context>
 
 <thinking_procedure>
@@ -60,6 +66,7 @@ ${renderFeedback(input.meeraFeedback)}
 - Exactly 3 angles, ids "A", "B", "C" in that order.
 - "selected" must be the id of a non-pruned angle.
 - Do not introduce any fact that isn't already in <intake>.
+- <recent_context> is optional and unverified. You may let it inform which angle feels timely, and an angle may reference its general theme (e.g. "renewed attention this month to X") in the hook or gap - but depends_on_facts must still list only facts from <intake>; a theme drawn from <recent_context> is not a "fact" and any specific number, study, or named source in it must be treated as needing verification later, never asserted outright. If nothing in <recent_context> is genuinely relevant, ignore it entirely rather than forcing a connection.
 </constraints>
 
 <format>Return JSON matching the provided schema exactly. No prose outside the JSON.</format>`;

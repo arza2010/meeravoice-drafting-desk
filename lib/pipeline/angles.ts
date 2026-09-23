@@ -15,8 +15,9 @@ export async function runAngles(
   intake: Intake,
   recentPosts: RecentPostSummary[],
   meeraFeedback: string[],
+  newsContext?: string | null,
 ): Promise<RunAnglesResult> {
-  const prompt = buildAnglesPrompt({ intake, recentPosts, meeraFeedback });
+  const prompt = buildAnglesPrompt({ intake, recentPosts, meeraFeedback, newsContext });
   const result = await generateStructured({
     stage: "angles",
     model: getEnv().OPENAI_MODEL,

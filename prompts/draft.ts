@@ -5,6 +5,8 @@ import type { Angle, Intake } from "@/lib/pipeline/schemas";
 export interface DraftPromptInput {
   intake: Intake;
   angle: Angle;
+  /** Unverified, best-effort web-search context - see lib/pipeline/news.ts. */
+  newsContext?: string | null;
 }
 
 /** Stage 3 (draft): Chain of Thought, temperature ~0.5. */
@@ -50,6 +52,10 @@ ${JSON.stringify(input.intake, null, 2)}
 <exemplars>
 ${exemplarsBlock}
 </exemplars>
+
+<recent_context source="web_search, unverified">
+${input.newsContext ?? "(no current-events context available for this fragment)"}
+</recent_context>
 </context>
 
 <thinking_procedure>
@@ -73,6 +79,7 @@ Then list every fact actually used in "facts_used", each tagged with its source 
 - Use a spaced hyphen " - " as the dash. Never an em dash "—" or an en dash "–" used as a dash.
 - Zero emoji, hashtags "#", exclamation marks "!", bullets ("- " or "• " at a line start), or bold ("**").
 - Any fact you need but that isn't in <intake> or <brand_facts> becomes a visible placeholder: "[NUMBER NEEDED: what it measures]" or "[NEEDS VERIFICATION: the claim]". Never invent it.
+- <recent_context> may only be used for general, unattributed framing - e.g. noting that a topic has been getting attention lately - never as a source of a specific number, statistic, study, or named claim. If you do reference something specific from it, it becomes a "[NEEDS VERIFICATION: the claim]" placeholder like anything else unsourced; it is never stated as settled fact, and never attributed to Meera or Skinstinct. If nothing in it is genuinely relevant to this angle, don't mention it at all - a forced "in the news" reference reads as generic AI copy, which is exactly what she doesn't sound like.
 - Never state anything listed under "Inconsistencies to confirm" in <brand_facts> as settled fact.
 - No named competitors or named people in a critical context, anywhere in the piece including the hook. If the source material names a specific brand or person (e.g. a booth, a rep, a company), replace the name with a neutral description of the practice or scene ("a booth at a trade fair", "the brand's representative") even when the real name would make the hook more vivid or specific.
 - No medical claims or diagnosis; these are cosmetics.

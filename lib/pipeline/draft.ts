@@ -10,8 +10,12 @@ export interface RunDraftResult {
   retried: boolean;
 }
 
-export async function runDraft(intake: Intake, angle: Angle): Promise<RunDraftResult> {
-  const prompt = buildDraftPrompt({ intake, angle });
+export async function runDraft(
+  intake: Intake,
+  angle: Angle,
+  newsContext?: string | null,
+): Promise<RunDraftResult> {
+  const prompt = buildDraftPrompt({ intake, angle, newsContext });
   const result = await generateStructured({
     stage: "draft",
     model: getEnv().OPENAI_MODEL,

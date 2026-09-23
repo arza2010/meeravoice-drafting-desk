@@ -15,6 +15,8 @@ Telegram (voice/text/forwarded note)
       1. Ingest     download voice via getFile -> transcribe (OpenAI) -> store fragment -> discard audio
       2. Intake     LLM stage 1: clean, extract claims + facts with source spans, score substance
                     not draftable -> bank it, tell Meera what's missing, stop
+      2b. News      best-effort web search (OpenAI hosted tool) for relevant recent context;
+                    unverified - informs angle/hook only, never a citable fact, see below
       3. Angles     LLM stage 2 (Tree of Thoughts): 3 candidate angles -> score -> select
       4. Draft      LLM stage 3 (Chain of Thought): plan fields -> draft
       5. Checks     deterministic code checks (length, mechanics, banned words, spelling, unsupported numbers)
@@ -24,6 +26,16 @@ Telegram (voice/text/forwarded note)
 ```
 
 Every stage's output is persisted to Postgres before moving to the next (`drafts.stage` tracks progress), so a crash or timeout mid-pipeline never loses or re-bills a completed stage.
+
+### Recent-context (news) lookup
+
+After intake, the pipeline does a best-effort web search (OpenAI's hosted `web_search_preview` tool, same `OPENAI_API_KEY` - no separate news API) for anything genuinely relevant and recent to the fragment's topic, so a draft can feel current when that's actually warranted. This is deliberately kept outside the fact-grounding system:
+
+- It's **never a citable source**. The angle and draft prompts are explicit that any specific number, study, or named claim drawn from it must be placeholdered as `[NEEDS VERIFICATION: ...]`, exactly like an uncited claim from anywhere else - it can never be stated as settled fact or attributed to Meera/Skinstinct.
+- It may only shape **general framing or angle selection** (e.g. preferring a timely angle, a passing "there's been renewed attention to X" line) - not specific claims.
+- If nothing turns up relevant, the prompts explicitly tell the model to ignore it rather than force a connection - a bolted-on "in the news" reference reads as generic AI copy.
+- It's **optional and fails open**: not every model supports the tool, and any lookup failure (unsupported model, timeout, rate limit) just means no news context that run, never a blocked draft. Token usage is logged under `stage_runs.stage = 'news'` when the lookup succeeds.
+- The result is persisted to `drafts.news_context` for audit - visible alongside the angles/checks/critique trail for that draft.
 
 ## 5-minute setup
 
@@ -114,7 +126,7 @@ Last verified eval run: **10/10 cases passed** against `gpt-4o`.
 /lib
   env.ts  db/{schema.ts,client.ts}
   telegram/{api.ts,guard.ts,parse.ts,keyboards.ts,flows.ts,commands.ts,handlers.ts}
-  pipeline/{ingest.ts,intake.ts,angles.ts,draft.ts,critique.ts,revise.ts,run.ts,actions.ts,context.ts,schemas.ts}
+  pipeline/{ingest.ts,intake.ts,news.ts,angles.ts,draft.ts,critique.ts,revise.ts,run.ts,actions.ts,context.ts,schemas.ts}
   checks/{index.ts,numbers.ts,spelling.ts,lexicon.ts}
   openai.ts  corpus.ts  skill.ts  pricing.ts
 /prompts  intake.ts angles.ts draft.ts critique.ts revise.ts   (built from /content/meera-voice)

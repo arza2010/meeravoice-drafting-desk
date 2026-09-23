@@ -47,7 +47,7 @@ export async function getRecentRejectReasons(limit = 5): Promise<string[]> {
 export async function recordStageRun(input: {
   fragmentId?: string | null;
   draftId?: string | null;
-  stage: "intake" | "angles" | "draft" | "critique" | "revise";
+  stage: "intake" | "news" | "angles" | "draft" | "critique" | "revise";
   model: string;
   tokensIn: number;
   tokensOut: number;
