@@ -159,32 +159,6 @@ function safeJsonParse(raw: string): { ok: true; value: unknown } | { ok: false;
   }
 }
 
-export interface WebSearchResult {
-  text: string;
-  tokensIn: number;
-  tokensOut: number;
-}
-
-/**
- * Hosted web search via the Responses API (same OPENAI_API_KEY, no separate
- * news-API signup). Not every model supports the `web_search_preview` tool,
- * so this throws on failure rather than silently returning empty - callers
- * that treat news context as optional should catch and proceed without it.
- */
-export async function fetchWebContext(query: string): Promise<WebSearchResult> {
-  const client = getOpenAI();
-  const response = await client.responses.create({
-    model: getEnv().OPENAI_MODEL,
-    input: query,
-    tools: [{ type: "web_search_preview", search_context_size: "low" }],
-  });
-  return {
-    text: response.output_text ?? "",
-    tokensIn: response.usage?.input_tokens ?? 0,
-    tokensOut: response.usage?.output_tokens ?? 0,
-  };
-}
-
 export async function transcribeAudio(buffer: Buffer, filename: string): Promise<string> {
   const client = getOpenAI();
   const file = await OpenAI.toFile(buffer, filename);

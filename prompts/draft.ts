@@ -5,7 +5,7 @@ import type { Angle, Intake } from "@/lib/pipeline/schemas";
 export interface DraftPromptInput {
   intake: Intake;
   angle: Angle;
-  /** Unverified, best-effort web-search context - see lib/pipeline/news.ts. */
+  /** Unverified, best-effort Google News RSS context - see lib/pipeline/news.ts. */
   newsContext?: string | null;
 }
 
@@ -53,7 +53,7 @@ ${JSON.stringify(input.intake, null, 2)}
 ${exemplarsBlock}
 </exemplars>
 
-<recent_context source="web_search, unverified">
+<recent_context source="Google News RSS search, real headlines but relevance and content not verified">
 ${input.newsContext ?? "(no current-events context available for this fragment)"}
 </recent_context>
 </context>
@@ -81,6 +81,8 @@ Then set "news_context_used": true only if "text" actually incorporates somethin
 - Use a spaced hyphen " - " as the dash. Never an em dash "—" or an en dash "–" used as a dash.
 - Zero emoji, hashtags "#", exclamation marks "!", bullets ("- " or "• " at a line start), or bold ("**").
 - Any fact you need but that isn't in <intake> or <brand_facts> becomes a visible placeholder: "[NUMBER NEEDED: what it measures]" or "[NEEDS VERIFICATION: the claim]". Never invent it.
+- A number stays paired with exactly what it measures in <intake> or <brand_facts>. If a fact says "23% of returns cited texture/feel complaints", you may state exactly that - never restate it as a different claim ("23% came from layering errors", "23% of customers don't realise X") just because the number is real. Reusing a real number for an unrelated assertion is still fabrication.
+- Never assert that a specific scene, date or event happened (a meeting, a trade fair, "last month", "a customer told me") unless intake.facts actually contains that scene. A hook or turn can describe the underlying mechanism or gap without claiming a specific occasion it doesn't have.
 - <recent_context> may only be used for general, unattributed framing - e.g. noting that a topic has been getting attention lately - never as a source of a specific number, statistic, study, or named claim. If you do reference something specific from it, it becomes a "[NEEDS VERIFICATION: the claim]" placeholder like anything else unsourced; it is never stated as settled fact, and never attributed to Meera or Skinstinct. If nothing in it is genuinely relevant to this angle, don't mention it at all - a forced "in the news" reference reads as generic AI copy, which is exactly what she doesn't sound like.
 - Never state anything listed under "Inconsistencies to confirm" in <brand_facts> as settled fact.
 - No named competitors or named people in a critical context, anywhere in the piece including the hook. If the source material names a specific brand or person (e.g. a booth, a rep, a company), replace the name with a neutral description of the practice or scene ("a booth at a trade fair", "the brand's representative") even when the real name would make the hook more vivid or specific.

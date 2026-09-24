@@ -29,13 +29,14 @@ Every stage's output is persisted to Postgres before moving to the next (`drafts
 
 ### Recent-context (news) lookup
 
-After intake, the pipeline does a best-effort web search (OpenAI's hosted `web_search_preview` tool, same `OPENAI_API_KEY` - no separate news API) for anything genuinely relevant and recent to the fragment's topic, so a draft can feel current when that's actually warranted. This is deliberately kept outside the fact-grounding system:
+After intake, the pipeline searches Google News RSS (free, no API key - `https://news.google.com/rss/search`) for anything genuinely relevant and recent to the fragment's topic, so a draft can feel current when that's actually warranted. This is deliberately kept outside the fact-grounding system:
 
 - It's **never a citable source**. The angle and draft prompts are explicit that any specific number, study, or named claim drawn from it must be placeholdered as `[NEEDS VERIFICATION: ...]`, exactly like an uncited claim from anywhere else - it can never be stated as settled fact or attributed to Meera/Skinstinct.
 - It may only shape **general framing or angle selection** (e.g. preferring a timely angle, a passing "there's been renewed attention to X" line) - not specific claims.
 - If nothing turns up relevant, the prompts explicitly tell the model to ignore it rather than force a connection - a bolted-on "in the news" reference reads as generic AI copy.
-- It's **optional and fails open**: not every model supports the tool, and any lookup failure (unsupported model, timeout, rate limit) just means no news context that run, never a blocked draft. Token usage is logged under `stage_runs.stage = 'news'` when the lookup succeeds.
-- The result is persisted to `drafts.news_context` for audit - visible alongside the angles/checks/critique trail for that draft.
+- It's **optional and fails open**: a timeout, network error, or empty feed just means no news context that run, never a blocked draft.
+- Real headlines and links, not LLM prose: because RSS results are literal (title/source/link/date), there's no risk of an LLM paraphrasing or misattributing a source the way a web-search *tool* could. Relevance is still unverified - that judgment stays with the angle/draft prompts.
+- **Delivery shows the outcome, not just whether it ran.** Every draft's header line ends with one of `news: none found` / `news: found, unused` / `news: referenced` (`drafts.news_context_used`, self-reported by the draft stage). When anything was found, the delivered message includes a "Related coverage" section with the real titles and links, whether or not the draft used them, so Meera can check the sources herself.
 
 ## 5-minute setup
 

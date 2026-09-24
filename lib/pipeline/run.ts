@@ -124,17 +124,17 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
   if (draftRow.stage === "intake") {
     const t0News = Date.now();
     const newsResult = await runNewsContext(intake);
-    if (newsResult.tokensIn > 0 || newsResult.tokensOut > 0) {
-      await recordStageRun({
-        draftId,
-        stage: "news",
-        model,
-        tokensIn: newsResult.tokensIn,
-        tokensOut: newsResult.tokensOut,
-        latencyMs: Date.now() - t0News,
-        retried: false,
-      });
-    }
+    // No LLM call (Google News RSS is a plain HTTP fetch), but still worth
+    // logging that the lookup happened and how long it took.
+    await recordStageRun({
+      draftId,
+      stage: "news",
+      model: "google-news-rss",
+      tokensIn: 0,
+      tokensOut: 0,
+      latencyMs: Date.now() - t0News,
+      retried: false,
+    });
 
     const recentPosts = await getRecentApprovedPosts();
     const feedback = await getRecentRejectReasons();
@@ -158,8 +158,8 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
         selectedAngle: anglesResult.angles.selected,
         pillar: selected?.pillar ?? null,
         stage: "angles",
-        tokensIn: draftRow.tokensIn + newsResult.tokensIn + anglesResult.tokensIn,
-        tokensOut: draftRow.tokensOut + newsResult.tokensOut + anglesResult.tokensOut,
+        tokensIn: draftRow.tokensIn + anglesResult.tokensIn,
+        tokensOut: draftRow.tokensOut + anglesResult.tokensOut,
       })
       .where(eq(drafts.id, draftId))
       .returning();
@@ -261,6 +261,13 @@ function formatDraftMessage(draft: Draft): string {
 
   if (placeholders.length > 0) {
     parts.push(`Before posting, confirm:\n${placeholders.map((p) => `- ${p}`).join("\n")}`);
+  }
+
+  if (draft.newsContext) {
+    const label = draft.newsContextUsed
+      ? "Related coverage (referenced in this draft):"
+      : "Related coverage found (not used in this draft):";
+    parts.push(`${label}\n${draft.newsContext}`);
   }
 
   return parts.join("\n\n");
