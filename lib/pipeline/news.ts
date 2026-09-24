@@ -18,6 +18,51 @@ export interface RunNewsContextResult {
   items: NewsItem[];
 }
 
+// A general-purpose stopword list (not tuned to any specific example) used
+// to turn a full sentence into a short keyword query. Google News RSS search
+// matches keywords, not natural language - a full sentence like
+// "Understanding the skin barrier requires recognizing the different causes
+// of damage..." reliably returns zero results even when short, on-topic
+// coverage exists (verified: "skin barrier repair" alone found a match that
+// the full sentence didn't).
+const STOPWORDS = new Set([
+  "a", "an", "the", "is", "are", "was", "were", "be", "been", "being", "to", "of", "and", "or",
+  "but", "that", "this", "these", "those", "for", "on", "in", "at", "by", "with", "from", "as",
+  "it", "its", "rather", "than", "not", "no", "so", "if", "then", "because", "while", "when",
+  "where", "which", "who", "whom", "how", "what", "why", "can", "could", "should", "would",
+  "will", "shall", "may", "might", "must", "do", "does", "did", "doing", "have", "has", "had",
+  "having", "i", "you", "he", "she", "we", "they", "them", "their", "our", "your", "my", "his",
+  "her", "also", "just", "very", "more", "most", "some", "any", "all", "each", "every", "other",
+  "such", "only", "own", "same", "too", "after", "before", "again", "further", "once", "here",
+  "there", "up", "down", "out", "off", "over", "under", "about", "into", "through", "during",
+  // intake.core_claim is itself LLM-generated and tends to follow a small
+  // set of templated constructions ("Understanding X requires Y",
+  // "highlighting the importance of Z") - these connector/meta words carry
+  // no topical signal and crowd out the actual subject if not filtered.
+  "understanding", "understand", "requires", "require", "requiring", "recognizing", "recognize",
+  "applying", "apply", "tailoring", "tailor", "highlighting", "highlights", "verifying", "verify",
+  "importance", "important", "different", "solutions", "solution", "approach", "approaches",
+  "causes", "cause", "affects", "affect", "affecting", "involves", "involve", "involving",
+]);
+
+/** Reduces a full-sentence claim to a short keyword query for Google News search. */
+export function toKeywordQuery(text: string, maxWords = 6): string {
+  const words = text
+    .replace(/[.,;:!?'"()]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2 && !STOPWORDS.has(w.toLowerCase()));
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const w of words) {
+    const key = w.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(w);
+    if (deduped.length >= maxWords) break;
+  }
+  return deduped.join(" ");
+}
+
 function extractSourceName(raw: unknown): string | null {
   if (!raw) return null;
   if (typeof raw === "string") return raw.trim() || null;
@@ -37,7 +82,8 @@ function extractSourceName(raw: unknown): string | null {
  * this is unverified, best-effort context - see lib/pipeline/run.ts.
  */
 export async function runNewsContext(intake: Intake): Promise<RunNewsContextResult> {
-  const query = intake.core_claim;
+  const query = toKeywordQuery(intake.core_claim);
+  if (!query) return { context: null, items: [] };
   const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
 
   const controller = new AbortController();
