@@ -186,6 +186,7 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
       .set({
         planJson: draftResult.draft.plan,
         factsUsedJson: draftResult.draft.facts_used,
+        newsContextUsed: draftResult.draft.news_context_used,
         text: draftResult.draft.text,
         stage: "draft",
         tokensIn: draftRow.tokensIn + draftResult.tokensIn,
@@ -202,6 +203,7 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
       text: draftRow.text as string,
       facts_used: (draftRow.factsUsedJson as DraftOutput["facts_used"] | null) ?? [],
       placeholders: extractPlaceholders(draftRow.text as string),
+      news_context_used: draftRow.newsContextUsed ?? false,
     };
     const t0 = Date.now();
     const critiqueResult = await runCritiqueLoop(draftOutput, intake, groundingText);
@@ -234,6 +236,11 @@ export async function continuePipeline(draftId: string, transcriptsHint?: string
   }
 }
 
+function newsContextStatusLabel(draft: Draft): string {
+  if (!draft.newsContext) return "news: none found";
+  return draft.newsContextUsed ? "news: referenced" : "news: found, unused";
+}
+
 function formatDraftMessage(draft: Draft): string {
   const flags = draft.critiqueJson
     ? collectDeliveryFlagsFromPersisted(draft)
@@ -242,7 +249,9 @@ function formatDraftMessage(draft: Draft): string {
   const charCount = (draft.text ?? "").trim().length;
   const flagNote = flags.length > 0 ? ` · ${flags.length} flag${flags.length === 1 ? "" : "s"}` : "";
 
-  const parts = [`Draft ${draft.seq} · ${draft.pillar ?? "Unassigned"} · ${charCount} chars${flagNote}`];
+  const parts = [
+    `Draft ${draft.seq} · ${draft.pillar ?? "Unassigned"} · ${charCount} chars${flagNote} · ${newsContextStatusLabel(draft)}`,
+  ];
 
   if (flags.length > 0) {
     parts.push(`Flags from automatic checks (please review):\n${flags.map((f) => `- ${f}`).join("\n")}`);

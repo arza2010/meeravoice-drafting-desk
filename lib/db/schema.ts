@@ -80,6 +80,10 @@ export const drafts = pgTable("drafts", {
   selectedAngle: text("selected_angle"),
   planJson: jsonb("plan_json"),
   factsUsedJson: jsonb("facts_used_json"),
+  // Whether the draft stage actually incorporated newsContext into the text
+  // (vs. it being fetched but judged irrelevant/unused). Null until the
+  // draft stage has run.
+  newsContextUsed: boolean("news_context_used"),
   text: text("text"),
   checksJson: jsonb("checks_json"),
   critiqueJson: jsonb("critique_json"),

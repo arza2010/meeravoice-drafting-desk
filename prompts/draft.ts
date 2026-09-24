@@ -71,6 +71,8 @@ Fill the plan fields IN ORDER before writing prose:
 Then write "text": the full post assembled from the plan, in short paragraphs of 1-3 sentences separated by blank lines, per <linkedin_structure>.
 
 Then list every fact actually used in "facts_used", each tagged with its source exactly as it appears in <intake>.
+
+Then set "news_context_used": true only if "text" actually incorporates something from <recent_context> (even just general framing, e.g. "there's been renewed attention to X lately"). Set it false whenever <recent_context> was empty, irrelevant, or you chose not to use it - false is the normal, expected value, not a fallback to avoid.
 </thinking_procedure>
 
 <constraints>
@@ -87,5 +89,5 @@ Then list every fact actually used in "facts_used", each tagged with its source 
 - Avoid every term listed under "Avoid" in <lexicon>, and every generic AI/LinkedIn structure tell listed there.
 </constraints>
 
-<format>Return JSON matching the provided schema exactly: {plan, text, facts_used, placeholders}. No prose outside the JSON.</format>`;
+<format>Return JSON matching the provided schema exactly: {plan, text, facts_used, placeholders, news_context_used}. No prose outside the JSON.</format>`;
 }

@@ -103,6 +103,12 @@ export const draftOutputSchema = z.object({
     }),
   ),
   placeholders: z.array(z.string()),
+  // True only if the text actually incorporates something from
+  // <recent_context> (even just general framing) - false when it wasn't
+  // available, wasn't relevant, or was judged not worth using. Lets
+  // delivery show Meera whether the news lookup's result was ever put to
+  // use, not just whether it ran.
+  news_context_used: z.boolean(),
 });
 
 export type DraftOutput = z.infer<typeof draftOutputSchema>;

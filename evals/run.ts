@@ -214,6 +214,7 @@ async function runCase7(evalCase: EvalCase): Promise<CaseResult> {
     text: reviseResult.revise.revised_text,
     facts_used: base.draftOutput.facts_used,
     placeholders: [],
+    news_context_used: base.draftOutput.news_context_used,
   };
   const finalResult = await runCritiqueLoop(critiqued, base.intake, base.grounding, 1, instruction);
 

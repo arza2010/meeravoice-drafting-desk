@@ -74,6 +74,7 @@ export async function applyEditInstruction(draftId: string, instruction: string)
     text: reviseResult.revise.revised_text,
     facts_used: (draft.factsUsedJson as DraftOutput["facts_used"] | null) ?? [],
     placeholders: [],
+    news_context_used: draft.newsContextUsed ?? false,
   };
   const t1 = Date.now();
   const critiqueResult = await runCritiqueLoop(draftOutputForCritique, intake, groundingText, 1, instruction);
