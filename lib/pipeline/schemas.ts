@@ -25,7 +25,7 @@ export const intakeSchema = z.object({
     }),
   ),
   candidate_pillars: z.array(pillarSchema),
-  substance_score: z.number().int().min(1).max(5),
+  substance_score: z.number().int().min(0).max(10),
   draftable: z.boolean(),
   missing_info: z.array(z.string()),
 });

@@ -67,6 +67,14 @@ export async function startPipelineForFragments(fragmentIds: string[]): Promise<
     return { kind: "not_draftable", missingInfo: intakeResult.intake.missing_info };
   }
 
+  // Triage is a visible step either way: the reject path already tells
+  // Meera why via "not_draftable" above. This is the matching acknowledgment
+  // for the pass path, so drafting doesn't happen silently.
+  await sendMessage(
+    getEnv().TELEGRAM_CHAT_ID,
+    `Triage: worth a post (${intakeResult.intake.substance_score}/10) - drafting now...\n\n${intakeResult.intake.core_claim}`,
+  );
+
   const [draftRow] = await db
     .insert(drafts)
     .values({
